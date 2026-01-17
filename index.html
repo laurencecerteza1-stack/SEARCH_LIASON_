@@ -1,336 +1,135 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Property Tax Computation 2026</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <title>RPT LIASON System</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <style>
-        body { background-color: #d1d4d7; font-family: Arial, sans-serif; font-size: 10px; }
-        .form-container { background: #e0e0e0; padding: 10px 15px; border: 1px solid #999; margin: 5px auto; width: 99%; box-shadow: 2px 2px 10px rgba(0,0,0,0.2); }
-        .form-label { font-weight: bold; font-size: 9px; text-transform: uppercase; margin-bottom: 1px; display: block; line-height: 1; }
-        .form-control-sm { border-radius: 0; border: 1px solid #888; height: 22px; font-size: 10px; padding: 2px 5px; }
-        .readonly-field { background-color: #f2f2f2 !important; font-weight: bold; }
-        fieldset { border: 1px solid #999; padding: 8px; margin-top: 8px; background: #e9e9e9; }
-        legend { width: auto; font-size: 10px; font-weight: bold; padding: 0 5px; color: #b22222; margin-bottom: 5px; float: none; }
-        th { font-size: 8px; text-align: center; background: #ccc !important; border: 1px solid #999; text-transform: uppercase; padding: 4px !important; }
-        td { padding: 2px !important; }
-        .btn-action { padding: 0 5px; height: 20px; border-radius: 0; line-height: 1; }
-        .section-total-header { background: #fff; border: 2px solid #333; font-weight: bold; color: #b22222; height: 28px; font-size: 13px; width: 150px; }
-        .balance-box { background: #fff; border: 2px solid #28a745; color: #28a745; font-size: 16px; height: 38px; font-weight: bold; }
-        .remarks-area { height: 75px !important; resize: none; font-weight: bold; color: #0b2447; background-color: #ffeb3b !important; border: 1px solid #999; }
-        .building-section { display: none; border-top: 3px double #999; margin-top: 15px; padding-top: 10px; }
-
-        @media print {
-            @page { size: letter landscape; margin: 0.2in; }
-            .d-print-none, .btn { display: none !important; }
-            .form-container { border: none; box-shadow: none; width: 100%; background: white !important; }
-            .form-control-sm { border: none !important; border-bottom: 1px solid #000 !important; }
-        }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; }
+        .box { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 900px; margin: 0 auto 20px auto; }
+        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
+        button { padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.3s; color: white; }
+        .btn-blue { background: #1a73e8; width: 100%; }
+        .btn-green { background: #28a745; }
+        .btn-red { background: #d93025; }
+        .stats { display: flex; gap: 20px; background: #e8f0fe; padding: 15px; border-radius: 8px; margin: 15px 0; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+        th { background: #f1f3f4; text-align: left; padding: 10px; border-bottom: 2px solid #ddd; }
+        td { padding: 8px; border-bottom: 1px solid #eee; }
+        #debug { color: #888; font-size: 10px; text-align: center; }
     </style>
 </head>
 <body>
 
-<div class="form-container" id="printable-area">
-    <form id="taxForm">
-        <div class="row g-2 border-bottom pb-2">
-            <div class="col-2">
-                <label class="form-label">Date of Computation:</label>
-                <input type="text" class="form-control form-control-sm text-danger fw-bold" value="01/07/2026">
-                <label class="form-label mt-1">Lot Details:</label>
-                <input type="text" class="form-control form-control-sm" value="GPH0020180001">
-                <label class="form-label mt-1">Prepared By:</label>
-                <input type="text" class="form-control form-control-sm" value="Laurence">
-                <label class="form-label mt-1">Full Payment:</label>
-                <input type="text" class="form-control form-control-sm">
-            </div>
-            <div class="col-2">
-                <label class="form-label">Yr. Cover:</label>
-                <input type="text" class="form-control form-control-sm">
-                <label class="form-label mt-1">Received From:</label>
-                <input type="text" class="form-control form-control-sm">
-                <label class="form-label mt-1">Amendment:</label>
-                <input type="text" class="form-control form-control-sm">
-                <label class="form-label mt-1">Adv. RPT Payment:</label>
-                <input type="number" id="advPayment" class="form-control form-control-sm" oninput="updateGrandTotal()">
-            </div>
-            <div class="col-2">
-                <label class="form-label">Classification:</label>
-                <input type="text" class="form-control form-control-sm">
-                <label class="form-label mt-1">Moved In/Turn Over:</label>
-                <input type="text" class="form-control form-control-sm">
-                <label class="form-label mt-1">Tax Dec:</label>
-                <input type="text" class="form-control form-control-sm">
-                <label class="form-label mt-1">Retention:</label>
-                <input type="text" class="form-control form-control-sm">
-            </div>
-            <div class="col-6">
-                <label class="form-label">Remarks:</label>
-                <textarea class="form-control form-control-sm remarks-area">SUBJECT FOR ADJUSTMENT - QUARTERLY PENALTY APPLIED (DAY 21 SWITCH)</textarea>
-                <div class="mt-2 text-end d-print-none">
-                    <button type="button" class="btn btn-primary btn-sm" onclick="window.print()">Print</button>
-                    <button type="button" class="btn btn-success btn-sm" onclick="downloadPDF()">PDF</button>
-                </div>
-            </div>
-        </div>
+<div class="box">
+    <h2 style="color: #1a73e8; margin-top: 0;">🔍 LIASON DATA</h2>
+    <div style="display: flex; gap: 10px;">
+        <input type="text" id="searchInput" placeholder="Search anything (RA#...)" onkeyup="processSearch()">
+        <button class="btn-green" onclick="loadData()">🔄 Refresh</button>
+        <button class="btn-red" onclick="downloadPDF()">📄 PDF</button>
+    </div>
 
-        <div class="d-flex justify-content-between align-items-center mt-3 p-2 bg-light border border-dark">
-            <h6 class="mb-0 fw-bold">LAND COMPUTATION</h6>
-            <div class="d-flex align-items-center">
-                <span class="fw-bold me-2">LAND TOTAL:</span>
-                <input type="text" id="landTotal" class="form-control section-total-header text-center" readonly value="0.00">
-            </div>
-        </div>
+    <div class="stats">
+        <div><label>Records Found:</label><div id="count" style="font-size:18px; font-weight:bold;">0</div></div>
+        <div><label>Total Amount:</label><div id="total" style="font-size:18px; font-weight:bold; color:#d93025;">₱0.00</div></div>
+    </div>
 
-        <fieldset>
-            <legend style="background:#5c7bd9; color:white;">YEAR WITH OR (LAND)</legend>
-            <table class="table table-bordered table-sm mb-0">
-                <thead>
-                    <tr>
-                        <th style="width:10%">Yr Charge</th>
-                        <th style="width:10%">OR Date</th>
-                        <th style="width:7%">No. Yrs</th>
-                        <th style="width:18%">Penalty Description</th>
-                        <th style="width:12%">OR Amount</th>
-                        <th style="width:12%">36% Annum</th>
-                        <th style="width:12%">Penalty Amt</th>
-                        <th style="width:15%">Total Amount</th>
-                        <th class="d-print-none" style="width:2%"></th>
-                    </tr>
-                </thead>
-                <tbody id="bodyWithOrLand">
-                    <tr>
-                        <td><input type="text" class="form-control form-control-sm"></td>
-                        <td><input type="text" class="form-control form-control-sm or-date" placeholder="M/D/YYYY" onchange="calcWithOR(this)"></td>
-                        <td><input type="text" class="form-control form-control-sm w-yrs readonly-field" readonly></td>
-                        <td><input type="text" class="form-control form-control-sm w-range readonly-field" readonly></td>
-                        <td><input type="number" class="form-control form-control-sm w-amt" oninput="calcWithOR(this)"></td>
-                        <td><input type="text" class="form-control form-control-sm w-annum readonly-field" readonly></td>
-                        <td><input type="text" class="form-control form-control-sm w-p-amt readonly-field" readonly></td>
-                        <td><input type="text" class="form-control form-control-sm w-total land-t-field readonly-field" readonly value="0.00"></td>
-                        <td class="d-print-none text-center"><button type="button" class="btn btn-danger btn-action" onclick="removeRow(this)">×</button></td>
-                    </tr>
-                </tbody>
-            </table>
-            <button type="button" class="btn btn-dark btn-xs mt-1 d-print-none" onclick="addRow('bodyWithOrLand')">+ Add Row</button>
-        </fieldset>
-
-        <fieldset>
-            <legend>YEAR WITHOUT OR (LAND)</legend>
-            <table class="table table-bordered table-sm mb-0">
-                <thead>
-                    <tr>
-                        <th style="width:15%">Year Range</th>
-                        <th style="width:15%">Assessed Value</th>
-                        <th style="width:10%">Tax Due %</th>
-                        <th style="width:15%">Tax Due Amt</th>
-                        <th style="width:10%">Penalty %</th>
-                        <th style="width:15%">Penalty Amt</th>
-                        <th style="width:18%">Total Amount</th>
-                        <th class="d-print-none" style="width:2%"></th>
-                    </tr>
-                </thead>
-                <tbody id="bodyWithoutOrLand">
-                    <tr>
-                        <td><input type="text" class="form-control form-control-sm wo-charge" placeholder="YYYY" oninput="calcWithoutOR(this)"></td>
-                        <td><input type="number" class="form-control form-control-sm wo-av" oninput="calcWithoutOR(this)"></td>
-                        <td><input type="text" class="form-control form-control-sm wo-tax-pct" value="2%" oninput="calcWithoutOR(this)"></td>
-                        <td><input type="text" class="form-control form-control-sm wo-td readonly-field" readonly></td>
-                        <td><input type="text" class="form-control form-control-sm wo-p-pct readonly-field" readonly></td>
-                        <td><input type="text" class="form-control form-control-sm wo-p-amt readonly-field" readonly></td>
-                        <td><input type="text" class="form-control form-control-sm wo-total land-t-field readonly-field" readonly value="0.00"></td>
-                        <td class="d-print-none text-center"><button type="button" class="btn btn-danger btn-action" onclick="removeRow(this)">×</button></td>
-                    </tr>
-                </tbody>
-            </table>
-            <button type="button" class="btn btn-dark btn-xs mt-1 d-print-none" onclick="addRow('bodyWithoutOrLand')">+ Add Row</button>
-        </fieldset>
-
-        <div class="d-print-none text-center mt-3">
-            <button type="button" id="toggleBuildingBtn" class="btn btn-outline-danger btn-sm fw-bold" onclick="toggleBuilding()">+ SHOW BUILDING SECTION</button>
-        </div>
-
-        <div id="buildingSection" class="building-section">
-            <div class="d-flex justify-content-between align-items-center p-2 bg-light border border-danger">
-                <h6 class="mb-0 fw-bold text-danger">BUILDING COMPUTATION</h6>
-                <div class="d-flex align-items-center">
-                    <span class="fw-bold me-2">BUILDING TOTAL:</span>
-                    <input type="text" id="buildTotal" class="form-control section-total-header text-center" readonly value="0.00">
-                </div>
-            </div>
-
-            <fieldset>
-                <legend style="background:#5c7bd9; color:white;">YEAR WITH OR (BUILDING)</legend>
-                <table class="table table-bordered table-sm mb-0">
-                    <tbody id="bodyWithOrBuild">
-                        <tr>
-                            <td style="width:10%"><input type="text" class="form-control form-control-sm"></td>
-                            <td style="width:10%"><input type="text" class="form-control form-control-sm or-date" placeholder="M/D/YYYY" onchange="calcWithOR(this)"></td>
-                            <td style="width:7%"><input type="text" class="form-control form-control-sm w-yrs readonly-field" readonly></td>
-                            <td style="width:18%"><input type="text" class="form-control form-control-sm w-range readonly-field" readonly></td>
-                            <td style="width:12%"><input type="number" class="form-control form-control-sm w-amt" oninput="calcWithOR(this)"></td>
-                            <td style="width:12%"><input type="text" class="form-control form-control-sm w-annum readonly-field" readonly></td>
-                            <td style="width:12%"><input type="text" class="form-control form-control-sm w-p-amt readonly-field" readonly></td>
-                            <td style="width:15%"><input type="text" class="form-control form-control-sm w-total build-t-field readonly-field" readonly value="0.00"></td>
-                            <td class="d-print-none text-center"><button type="button" class="btn btn-danger btn-action" onclick="removeRow(this)">×</button></td>
-                        </tr>
-                    </tbody>
-                </table>
-                <button type="button" class="btn btn-dark btn-xs mt-1 d-print-none" onclick="addRow('bodyWithOrBuild')">+ Add Row</button>
-            </fieldset>
-
-            <fieldset>
-                <legend>YEAR WITHOUT OR (BUILDING)</legend>
-                <table class="table table-bordered table-sm mb-0">
-                    <tbody id="bodyWithoutOrBuild">
-                        <tr>
-                            <td style="width:15%"><input type="text" class="form-control form-control-sm wo-charge" oninput="calcWithoutOR(this)"></td>
-                            <td style="width:15%"><input type="number" class="form-control form-control-sm wo-av" oninput="calcWithoutOR(this)"></td>
-                            <td style="width:10%"><input type="text" class="form-control form-control-sm wo-tax-pct" value="2%" oninput="calcWithoutOR(this)"></td>
-                            <td style="width:15%"><input type="text" class="form-control form-control-sm wo-td readonly-field" readonly></td>
-                            <td style="width:10%"><input type="text" class="form-control form-control-sm wo-p-pct readonly-field" readonly></td>
-                            <td style="width:15%"><input type="text" class="form-control form-control-sm wo-p-amt readonly-field" readonly></td>
-                            <td style="width:18%"><input type="text" class="form-control form-control-sm wo-total build-t-field readonly-field" readonly value="0.00"></td>
-                            <td class="d-print-none text-center"><button type="button" class="btn btn-danger btn-action" onclick="removeRow(this)">×</button></td>
-                        </tr>
-                    </tbody>
-                </table>
-                <button type="button" class="btn btn-dark btn-xs mt-1 d-print-none" onclick="addRow('bodyWithoutOrBuild')">+ Add Row</button>
-            </fieldset>
-        </div>
-
-        <div class="row mt-4 align-items-end">
-            <div class="col-6"></div>
-            <div class="col-6">
-                <div class="row align-items-center">
-                    <div class="col-6 text-end h6 mb-0 fw-bold">GRAND TOTAL DUE:</div>
-                    <div class="col-6"><input type="text" id="grandTotal" class="form-control balance-box text-center" readonly value="0.00"></div>
-                </div>
-            </div>
-        </div>
-    </form>
+ <table id="rptTable" style="width:100%; border-collapse: collapse; margin-top:10px;">
+    <thead>
+        <tr style="background:#f1f3f4; text-align: left;">
+            <th style="padding:10px;">RA#</th> <th style="padding:10px;">Buyer's Name</th>
+            <th style="padding:10px;">OR#</th>
+            <th style="padding:10px;">Yr Covered</th>
+            <th style="padding:10px;">OR Amount</th>
+            <th style="padding:10px;">OR Date</th>
+        </tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+</table>
+    <div id="debug">System ready.</div>
 </div>
 
+<iframe name="hidden_iframe" style="display:none;"></iframe>
+
 <script>
-const fcy = (n) => new Intl.NumberFormat('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}).format(n);
-const parseNum = (s) => parseFloat(String(s).replace(/,/g, '')) || 0;
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyu5YHdYQOmU-TZ9M645ObWCcU9jQTLFu9QVo9pVlyFz-f2uP4WQ7hVpXBVUyKlo7o7xg/exec"; 
+    let masterData = [];
 
-function toggleBuilding() {
-    const s = document.getElementById('buildingSection');
-    const b = document.getElementById('toggleBuildingBtn');
-    s.style.display = (s.style.display === 'block') ? 'none' : 'block';
-    b.innerText = (s.style.display === 'block') ? '- HIDE BUILDING SECTION' : '+ SHOW BUILDING SECTION';
-    updateGrandTotal();
-}
+    window.onload = loadData;
 
-function addRow(id) {
-    const tbody = document.getElementById(id);
-    const row = tbody.querySelector('tr').cloneNode(true);
-    row.querySelectorAll('input').forEach(i => { if(!i.classList.contains('wo-tax-pct')) i.value = ""; });
-    tbody.appendChild(row);
-}
-
-function removeRow(btn) {
-    const tbody = btn.closest('tbody');
-    if (tbody.querySelectorAll('tr').length > 1) btn.closest('tr').remove();
-    updateGrandTotal();
-}
-
-function calcWithOR(el) {
-    const tr = el.closest('tr');
-    const dateStr = tr.querySelector('.or-date').value;
-    const amount = parseNum(tr.querySelector('.w-amt').value);
-    const inputDate = new Date(dateStr);
-    
-    if (!isNaN(inputDate)) {
-        const inputYear = inputDate.getFullYear();
-        const inputMonth = inputDate.getMonth() + 1;
-        const inputDay = inputDate.getDate();
-
-        if (inputYear >= 2026) {
-            tr.querySelector('.w-yrs').value = "0.00";
-            tr.querySelector('.w-range').value = "2026 (No Penalty)";
-            tr.querySelector('.w-p-amt').value = "0.00";
-            tr.querySelector('.w-total').value = fcy(amount);
-            updateGrandTotal();
-            return;
-        }
-
-        // QUARTER SWITCH ON DAY 21
-        let qNum = 1;
-        if ((inputMonth === 3 && inputDay >= 21) || inputMonth > 3) qNum = 2;
-        if ((inputMonth === 6 && inputDay >= 21) || inputMonth > 6) qNum = 3;
-        if ((inputMonth === 9 && inputDay >= 21) || inputMonth > 9) qNum = 4;
-
-        let qFrac = 0;
-        switch(qNum) {
-            case 1: qFrac = 0; break;
-            case 2: qFrac = 0.25; break;
-            case 3: qFrac = 0.50; break;
-            case 4: qFrac = 0.75; break;
-        }
-
-        let baseValue = (2025 - inputYear) + 1 - qFrac;
-        if (baseValue > 5) baseValue = 5.00; // Cap at 5 years / 180%
-
-        const annum = amount * 0.36;
-        const penalty = annum * baseValue;
-        
-        tr.querySelector('.w-yrs').value = baseValue.toFixed(2);
-        tr.querySelector('.w-range').value = `${inputYear} Q${qNum}-2025`;
-        tr.querySelector('.w-annum').value = fcy(annum);
-        tr.querySelector('.w-p-amt').value = fcy(penalty);
-        tr.querySelector('.w-total').value = fcy(amount + penalty);
+    function loadData() {
+        document.getElementById('debug').innerText = "Loading data from Google...";
+        fetch(WEB_APP_URL)
+            .then(res => res.json())
+            .then(data => {
+                masterData = data;
+                document.getElementById('debug').innerText = "Data loaded: " + data.length + " rows.";
+                processSearch();
+            })
+            .catch(err => {
+                document.getElementById('debug').innerText = "Error: Use the /exec link and make sure it is shared to 'Anyone'.";
+            });
     }
-    updateGrandTotal();
+
+  function processSearch() {
+    const query = document.getElementById('searchInput').value.toLowerCase();
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = "";
+    
+    let totalOrAmount = 0;
+    let count = 0;
+
+    masterData.forEach(row => {
+        // Ang RA# (Description) ay nasa Column C (Index 2)
+        const raValue = String(row[2]).toLowerCase();
+
+        if (raValue.includes(query) && query !== "") {
+            count++;
+            
+            // --- UPDATED MAPPING PARA SA MGA BAGONG COLUMN ---
+            const raNumber   = row[2];          // Column C (Index 2)
+            const buyerName  = row[3];          // Column D (Index 3)
+            
+            // Returned OR Section (Column Z onwards):
+            const orNumber   = row[25] || "---"; // Column Z (Index 25)
+            const yrCovered  = row[26] || "---"; // Column AA (Index 26)
+            
+            // Linisin ang amount (Column AB / Index 27)
+            const rawAmount  = String(row[27]).replace(/[^0-9.-]+/g,"");
+            const orAmount   = parseFloat(rawAmount) || 0; 
+            
+            const orDate     = row[28] || "---"; // Column AC (Index 28)
+            const sheetYear  = row[row.length - 1]; // Sheet Name/Year
+
+            totalOrAmount += orAmount;
+
+            let tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${raNumber}</td>
+                <td>${buyerName}</td>
+                <td>${orNumber}</td>
+                <td>${yrCovered}</td>
+                <td style="font-weight:bold; color: #d93025;">₱${orAmount.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                <td>${orDate}</td>
+                <td style="color: blue; font-weight: bold; font-size: 0.8em;">${sheetYear}</td>
+            `;
+            tbody.appendChild(tr);
+        }
+    });
+
+    // I-update ang summary stats
+    document.getElementById('count').innerText = count;
+    document.getElementById('total').innerText = "₱" + totalOrAmount.toLocaleString(undefined, {minimumFractionDigits: 2});
 }
 
-function calcWithoutOR(el) {
-    const tr = el.closest('tr');
-    const year = parseInt(tr.querySelector('.wo-charge').value);
-    const av = parseNum(tr.querySelector('.wo-av').value);
-    const taxRate = parseNum(tr.querySelector('.wo-tax-pct').value) / 100;
-    
-    let pPct = 0;
-    if (year <= 2023) pPct = 0.72;
-    else if (year === 2024) pPct = 0.48;
-    else if (year === 2025) pPct = 0.24;
-    else if (year >= 2026) pPct = 0.00;
-
-    const tdAmt = av * taxRate;
-    const pAmt = tdAmt * pPct;
-    
-    tr.querySelector('.wo-p-pct').value = (pPct * 100).toFixed(0) + "%";
-    tr.querySelector('.wo-td').value = fcy(tdAmt);
-    tr.querySelector('.wo-p-amt').value = fcy(pAmt);
-    tr.querySelector('.wo-total').value = fcy(tdAmt + pAmt);
-    updateGrandTotal();
-}
-
-function updateGrandTotal() {
-    let lSum = 0, bSum = 0;
-    document.querySelectorAll('.land-t-field').forEach(i => lSum += parseNum(i.value));
-    if(document.getElementById('buildingSection').style.display === 'block') {
-        document.querySelectorAll('.build-t-field').forEach(i => bSum += parseNum(i.value));
+    function downloadPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        doc.text("RPT Report", 14, 15);
+        doc.autoTable({ html: '#rptTable', startY: 20 });
+        doc.save("RPT_Report.pdf");
     }
-    const adv = parseNum(document.getElementById('advPayment').value);
-    document.getElementById('landTotal').value = fcy(lSum);
-    document.getElementById('buildTotal').value = fcy(bSum);
-    document.getElementById('grandTotal').value = fcy((lSum + bSum) - adv);
-}
-
-function downloadPDF() {
-    const element = document.getElementById('printable-area');
-    const opt = {
-        margin: 0.2,
-        filename: 'Tax_Computation_2026.pdf',
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'in', format: 'letter', orientation: 'landscape' }
-    };
-    html2pdf().set(opt).from(element).save();
-}
 </script>
 </body>
 </html>
