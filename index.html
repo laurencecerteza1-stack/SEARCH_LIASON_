@@ -23,7 +23,7 @@
 <body>
 
 <div class="box">
-    <h2 style="color: #1a73e8; margin-top: 0;">🔍 LIASON DATA</h2>
+    <h2 style="color: #1a73e8; margin-top: 0;">🔍 LIAISON DATA</h2>
     <div style="display: flex; gap: 10px;">
         <input type="text" id="searchInput" placeholder="Search anything (RA#...)" onkeyup="processSearch()">
         <button class="btn-green" onclick="loadData()">🔄 Refresh</button>
@@ -81,55 +81,96 @@
     let count = 0;
 
     masterData.forEach(row => {
-        // Ang RA# (Description) ay nasa Column C (Index 2)
-        const raValue = String(row[2]).toLowerCase();
+        const raValue = String(row[2]).toLowerCase();    // Column C (RA#)
+        const buyerValue = String(row[3]).toLowerCase(); // Column D (Buyer Name)
 
-        if (raValue.includes(query) && query !== "") {
+        // SEARCH LOGIC: RA# O BUYER NAME
+        if ((raValue.includes(query) || buyerValue.includes(query)) && query !== "") {
             count++;
             
-            // --- UPDATED MAPPING PARA SA MGA BAGONG COLUMN ---
-            const raNumber   = row[2];          // Column C (Index 2)
-            const buyerName  = row[3];          // Column D (Index 3)
-            
-            // Returned OR Section (Column Z onwards):
-            const orNumber   = row[25] || "---"; // Column Z (Index 25)
-            const yrCovered  = row[26] || "---"; // Column AA (Index 26)
-            
-            // Linisin ang amount (Column AB / Index 27)
+            const raNumber   = row[2];          
+            const buyerName  = row[3];          
+            const orNumber   = row[25] || "---"; // Column Z
+            const yrCovered  = row[26] || "---"; // Column AA
             const rawAmount  = String(row[27]).replace(/[^0-9.-]+/g,"");
             const orAmount   = parseFloat(rawAmount) || 0; 
-            
-            const orDate     = row[28] || "---"; // Column AC (Index 28)
-            const sheetYear  = row[row.length - 1]; // Sheet Name/Year
+            const orDate     = row[28] || "---"; // Column AC
+            const sheetYear  = row[row.length - 1]; 
 
             totalOrAmount += orAmount;
 
-            let tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td>${raNumber}</td>
-                <td>${buyerName}</td>
-                <td>${orNumber}</td>
-                <td>${yrCovered}</td>
-                <td style="font-weight:bold; color: #d93025;">₱${orAmount.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                <td>${orDate}</td>
-                <td style="color: blue; font-weight: bold; font-size: 0.8em;">${sheetYear}</td>
-            `;
-            tbody.appendChild(tr);
+            tbody.innerHTML += `
+                <tr>
+                    <td>${raNumber}</td>
+                    <td>${buyerName}</td>
+                    <td>${orNumber}</td>
+                    <td>${yrCovered}</td>
+                    <td style="text-align: right; font-weight:bold; color: #d93025;">₱${orAmount.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                    <td>${orDate}</td>
+                    <td>${sheetYear}</td>
+                </tr>`;
         }
     });
 
-    // I-update ang summary stats
     document.getElementById('count').innerText = count;
-    document.getElementById('total').innerText = "₱" + totalOrAmount.toLocaleString(undefined, {minimumFractionDigits: 2});
+    // HTML display ng Peso sign
+    document.getElementById('total').innerText = "\u20B1" + totalOrAmount.toLocaleString(undefined, {minimumFractionDigits: 2});
 }
 
-    function downloadPDF() {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        doc.text("RPT Report", 14, 15);
-        doc.autoTable({ html: '#rptTable', startY: 20 });
-        doc.save("RPT_Report.pdf");
-    }
+   function downloadPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    // Kunin ang numeric value lang ng Total (tatanggalin ang anumang simbolo)
+    const totalRaw = document.getElementById('total').innerText.replace(/[^\d.-]/g, '');
+    const countDisplay = document.getElementById('count').innerText;
+    const searchQuery = document.getElementById('searchInput').value;
+
+    // Report Header
+    doc.setFontSize(18);
+    doc.setTextColor(26, 115, 232);
+    doc.text("RPT Fund Request Report", 14, 15);
+    
+    doc.setFontSize(10);
+    doc.setTextColor(100, 100, 100);
+    doc.text(`Keyword: ${searchQuery || "All Records"}`, 14, 23);
+    doc.text(`Date Generated: ${new Date().toLocaleDateString()}`, 14, 28);
+
+    // --- SUMMARY BOX (CLEAN FORMAT) ---
+    doc.setFillColor(245, 245, 245);
+    doc.rect(14, 33, 182, 12, 'F');
+    
+    doc.setFont(undefined, 'bold');
+    doc.setFontSize(11);
+    doc.setTextColor(0, 0, 0);
+    doc.text(`Total Records: ${countDisplay}`, 20, 41);
+    
+    // Gagamit ng "PHP" sa halip na simbolo para iwas sa "±" error
+    doc.setTextColor(217, 48, 37);
+    const formattedTotal = parseFloat(totalRaw).toLocaleString(undefined, {minimumFractionDigits: 2});
+    doc.text(`Grand Total: PHP ${formattedTotal}`, 110, 41); 
+
+    // --- TABLE FORMATTING ---
+    doc.autoTable({
+        html: '#rptTable',
+        startY: 50,
+        theme: 'grid',
+        headStyles: { fillColor: [26, 115, 232] },
+        styles: { fontSize: 8 },
+        columnStyles: {
+            4: { halign: 'right', fontStyle: 'bold' } // Amount Column
+        },
+        didParseCell: function(data) {
+            // Tatanggalin ang anumang maling simbolo (±) sa loob ng table cells
+            if (data.column.index === 4 && data.cell.section === 'body') {
+                let val = data.cell.text[0];
+                data.cell.text[0] = val.replace(/[^\d.,-]/g, ''); // Number at comma na lang ititira
+            }
+        }
+    });
+
+    doc.save(`RPT_Report_${searchQuery || 'Export'}.pdf`);
+}
 </script>
 </body>
 </html>
