@@ -43,7 +43,6 @@
             <th style="padding:10px;">Yr Covered</th>
             <th style="padding:10px;">OR Amount</th>
             <th style="padding:10px;">OR Date</th>
-            <th style="padding:10px;">Remarks</th>
         </tr>
     </thead>
     <tbody id="tableBody"></tbody>
@@ -96,7 +95,6 @@
             const rawAmount  = String(row[22]).replace(/[^0-9.-]+/g,"");
             const orAmount   = parseFloat(rawAmount) || 0; 
             const orDate     = row[23] || "---"; // Column AC
-            const remarks    = row[16] || "---"; // Idinagdag (Row 16)
             const sheetYear  = row[row.length - 1]; 
 
             totalOrAmount += orAmount;
@@ -109,7 +107,6 @@
                     <td>${yrCovered}</td>
                     <td style="text-align: right; font-weight:bold; color: #d93025;">₱${orAmount.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
                     <td>${orDate}</td>
-                    <td>${remarks}</td>
                     <td>${sheetYear}</td>
                 </tr>`;
         }
