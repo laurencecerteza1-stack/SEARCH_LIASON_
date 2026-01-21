@@ -6,15 +6,13 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; }
-        .box { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 900px; margin: 0 auto 20px auto; }
-        .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .box { background: white; padding: 25px; border-radius: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); max-width: 1100px; margin: 0 auto 20px auto; }
         input { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; box-sizing: border-box; }
         button { padding: 12px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.3s; color: white; }
-        .btn-blue { background: #1a73e8; width: 100%; }
         .btn-green { background: #28a745; }
         .btn-red { background: #d93025; }
         .stats { display: flex; gap: 20px; background: #e8f0fe; padding: 15px; border-radius: 8px; margin: 15px 0; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 11px; }
         th { background: #f1f3f4; text-align: left; padding: 10px; border-bottom: 2px solid #ddd; }
         td { padding: 8px; border-bottom: 1px solid #eee; }
         #debug { color: #888; font-size: 10px; text-align: center; }
@@ -35,22 +33,22 @@
         <div><label>Total Amount:</label><div id="total" style="font-size:18px; font-weight:bold; color:#d93025;">₱0.00</div></div>
     </div>
 
- <table id="rptTable" style="width:100%; border-collapse: collapse; margin-top:10px;">
-    <thead>
-        <tr style="background:#f1f3f4; text-align: left;">
-            <th style="padding:10px;">RA#</th> <th style="padding:10px;">Buyer's Name</th>
-            <th style="padding:10px;">OR#</th>
-            <th style="padding:10px;">Yr Covered</th>
-            <th style="padding:10px;">OR Amount</th>
-            <th style="padding:10px;">OR Date</th>
-        </tr>
-    </thead>
-    <tbody id="tableBody"></tbody>
-</table>
+    <table id="rptTable">
+        <thead>
+            <tr>
+                <th>RA#</th> 
+                <th>Buyer's Name</th>
+                <th>OR#</th>
+                <th>Yr Covered</th>
+                <th>OR Amount</th>
+                <th>OR Date</th>
+                <th>Sheet Yr</th>
+                <th>Remarks</th> </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
     <div id="debug">System ready.</div>
 </div>
-
-<iframe name="hidden_iframe" style="display:none;"></iframe>
 
 <script>
     const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyu5YHdYQOmU-TZ9M645ObWCcU9jQTLFu9QVo9pVlyFz-f2uP4WQ7hVpXBVUyKlo7o7xg/exec"; 
@@ -68,109 +66,96 @@
                 processSearch();
             })
             .catch(err => {
-                document.getElementById('debug').innerText = "Error: Use the /exec link and make sure it is shared to 'Anyone'.";
+                document.getElementById('debug').innerText = "Error loading data.";
             });
     }
 
-  function processSearch() {
-    const query = document.getElementById('searchInput').value.toLowerCase();
-    const tbody = document.getElementById('tableBody');
-    tbody.innerHTML = "";
-    
-    let totalOrAmount = 0;
-    let count = 0;
+    function processSearch() {
+        const query = document.getElementById('searchInput').value.toLowerCase();
+        const tbody = document.getElementById('tableBody');
+        tbody.innerHTML = "";
+        
+        let totalOrAmount = 0;
+        let count = 0;
 
-    masterData.forEach(row => {
-        const raValue = String(row[2]).toLowerCase();    // Column C (RA#)
-        const buyerValue = String(row[3]).toLowerCase(); // Column D (Buyer Name)
+        masterData.forEach(row => {
+            const raValue = String(row[2]).toLowerCase();   
+            const buyerValue = String(row[3]).toLowerCase(); 
 
-        // SEARCH LOGIC: RA# O BUYER NAME
-        if ((raValue.includes(query) || buyerValue.includes(query)) && query !== "") {
-            count++;
-            
-            const raNumber   = row[2];          
-            const buyerName  = row[3];          
-            const orNumber   = row[20] || "---"; // Column Z
-            const yrCovered  = row[21] || "---"; // Column AA
-            const rawAmount  = String(row[22]).replace(/[^0-9.-]+/g,"");
-            const orAmount   = parseFloat(rawAmount) || 0; 
-            const orDate     = row[23] || "---"; // Column AC
-            const sheetYear  = row[row.length - 1]; 
+            if ((raValue.includes(query) || buyerValue.includes(query)) && query !== "") {
+                count++;
+                
+                const raNumber   = row[2];          
+                const buyerName  = row[3];          
+                const orNumber   = row[20] || "---"; 
+                const yrCovered  = row[21] || "---"; 
+                const rawAmount  = String(row[22]).replace(/[^0-9.-]+/g,"");
+                const orAmount   = parseFloat(rawAmount) || 0; 
+                const orDate     = row[23] || "---"; 
+                const sheetYear  = row[row.length - 1]; 
+                const remarks    = row[16] || "---"; // Idinagdag (Row 16)
 
-            totalOrAmount += orAmount;
+                totalOrAmount += orAmount;
 
-            tbody.innerHTML += `
-                <tr>
-                    <td>${raNumber}</td>
-                    <td>${buyerName}</td>
-                    <td>${orNumber}</td>
-                    <td>${yrCovered}</td>
-                    <td style="text-align: right; font-weight:bold; color: #d93025;">₱${orAmount.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-                    <td>${orDate}</td>
-                    <td>${sheetYear}</td>
-                </tr>`;
-        }
-    });
-
-    document.getElementById('count').innerText = count;
-    // HTML display ng Peso sign
-    document.getElementById('total').innerText = "\u20B1" + totalOrAmount.toLocaleString(undefined, {minimumFractionDigits: 2});
-}
-
-   function downloadPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    
-    // Kunin ang numeric value lang ng Total (tatanggalin ang anumang simbolo)
-    const totalRaw = document.getElementById('total').innerText.replace(/[^\d.-]/g, '');
-    const countDisplay = document.getElementById('count').innerText;
-    const searchQuery = document.getElementById('searchInput').value;
-
-    // Report Header
-    doc.setFontSize(18);
-    doc.setTextColor(26, 115, 232);
-    doc.text("RPT Fund Request Report", 14, 15);
-    
-    doc.setFontSize(10);
-    doc.setTextColor(100, 100, 100);
-    doc.text(`Keyword: ${searchQuery || "All Records"}`, 14, 23);
-    doc.text(`Date Generated: ${new Date().toLocaleDateString()}`, 14, 28);
-
-    // --- SUMMARY BOX (CLEAN FORMAT) ---
-    doc.setFillColor(245, 245, 245);
-    doc.rect(14, 33, 182, 12, 'F');
-    
-    doc.setFont(undefined, 'bold');
-    doc.setFontSize(11);
-    doc.setTextColor(0, 0, 0);
-    doc.text(`Total Records: ${countDisplay}`, 20, 41);
-    
-    // Gagamit ng "PHP" sa halip na simbolo para iwas sa "±" error
-    doc.setTextColor(217, 48, 37);
-    const formattedTotal = parseFloat(totalRaw).toLocaleString(undefined, {minimumFractionDigits: 2});
-    doc.text(`Grand Total: PHP ${formattedTotal}`, 110, 41); 
-
-    // --- TABLE FORMATTING ---
-    doc.autoTable({
-        html: '#rptTable',
-        startY: 50,
-        theme: 'grid',
-        headStyles: { fillColor: [26, 115, 232] },
-        styles: { fontSize: 8 },
-        columnStyles: {
-            4: { halign: 'right', fontStyle: 'bold' } // Amount Column
-        },
-        didParseCell: function(data) {
-            // Tatanggalin ang anumang maling simbolo (±) sa loob ng table cells
-            if (data.column.index === 4 && data.cell.section === 'body') {
-                let val = data.cell.text[0];
-                data.cell.text[0] = val.replace(/[^\d.,-]/g, ''); // Number at comma na lang ititira
+                tbody.innerHTML += `
+                    <tr>
+                        <td>${raNumber}</td>
+                        <td>${buyerName}</td>
+                        <td>${orNumber}</td>
+                        <td>${yrCovered}</td>
+                        <td style="text-align: right; font-weight:bold; color: #d93025;">₱${orAmount.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+                        <td>${orDate}</td>
+                        <td>${sheetYear}</td>
+                        <td>${remarks}</td>
+                    </tr>`;
             }
-        }
-    });
+        });
 
-    doc.save(`RPT_Report_${searchQuery || 'Export'}.pdf`);
-}
+        document.getElementById('count').innerText = count;
+        document.getElementById('total').innerText = "\u20B1" + totalOrAmount.toLocaleString(undefined, {minimumFractionDigits: 2});
+    }
+
+    function downloadPDF() {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('l', 'mm', 'a4'); // Landscape para kasya lahat ng columns
+        
+        const totalRaw = document.getElementById('total').innerText.replace(/[^\d.-]/g, '');
+        const countDisplay = document.getElementById('count').innerText;
+        const searchQuery = document.getElementById('searchInput').value;
+
+        doc.setFontSize(18);
+        doc.setTextColor(26, 115, 232);
+        doc.text("RPT Fund Request Report", 14, 15);
+        
+        doc.setFontSize(10);
+        doc.setTextColor(100, 100, 100);
+        doc.text(`Keyword: ${searchQuery || "All Records"} | Generated: ${new Date().toLocaleDateString()}`, 14, 25);
+
+        doc.autoTable({
+            html: '#rptTable',
+            startY: 35,
+            theme: 'grid',
+            headStyles: { fillColor: [26, 115, 232] },
+            styles: { fontSize: 8 },
+            columnStyles: {
+                4: { halign: 'right', fontStyle: 'bold' } 
+            },
+            didParseCell: function(data) {
+                if (data.column.index === 4 && data.cell.section === 'body') {
+                    let val = data.cell.text[0];
+                    data.cell.text[0] = val.replace(/[^\d.,-]/g, '');
+                }
+            }
+        });
+
+        const finalY = doc.lastAutoTable.finalY + 10;
+        doc.setFontSize(11);
+        doc.setTextColor(0, 0, 0);
+        doc.text(`Total Records: ${countDisplay}`, 14, finalY);
+        doc.text(`Grand Total: PHP ${parseFloat(totalRaw).toLocaleString(undefined, {minimumFractionDigits: 2})}`, 14, finalY + 7);
+
+        doc.save(`RPT_Report_${searchQuery || 'Export'}.pdf`);
+    }
 </script>
 </body>
 </html>
