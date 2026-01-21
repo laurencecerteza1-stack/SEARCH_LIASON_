@@ -90,11 +90,11 @@
             
             const raNumber   = row[2];          
             const buyerName  = row[3];          
-            const orNumber   = row[25] || "---"; // Column Z
-            const yrCovered  = row[26] || "---"; // Column AA
-            const rawAmount  = String(row[27]).replace(/[^0-9.-]+/g,"");
+            const orNumber   = row[21] || "---"; // Column Z
+            const yrCovered  = row[22] || "---"; // Column AA
+            const rawAmount  = String(row[23]).replace(/[^0-9.-]+/g,"");
             const orAmount   = parseFloat(rawAmount) || 0; 
-            const orDate     = row[28] || "---"; // Column AC
+            const orDate     = row[24] || "---"; // Column AC
             const sheetYear  = row[row.length - 1]; 
 
             totalOrAmount += orAmount;
@@ -174,3 +174,4 @@
 </script>
 </body>
 </html>
+
